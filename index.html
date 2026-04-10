@@ -942,7 +942,7 @@
 
             // 构建当事人字符串
             const plaintiffNames = plaintiffs.filter(p => p).join('、');
-            const defendantNames = defendants.map((d, i) => `被告${i+1}${d}`).join('、');
+            const defendantNames = defendants.map((d, i) => {const chinese = ['零','一','二','三','四','五','六','七','八','九','十']; let numChinese = i+1 <= 10 ? chinese[i+1] : (i+1).toString();return `被告${numChinese}${d}`);})join('、');
             const thirdNames = thirdParties.filter(t => t).join('、');
             let partyStr = `原告${plaintiffNames}诉${defendantNames}`;
             if (thirdNames) partyStr += `、第三人${thirdNames}`;
