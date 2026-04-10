@@ -12,9 +12,6 @@
         .header p{font-size:12px;opacity:0.8;margin-top:6px;}
         .main{display:flex;gap:20px;flex-wrap:wrap;}
         .left{flex:1.2;min-width:380px;background:white;border-radius:12px;padding:18px;max-height:calc(100vh-130px);overflow-y:auto;}
-        .right{flex:1.8;min-width:450px;background:white;border-radius:12px;display:flex;flex-direction:column;}
-        .right-header{background:#f8f9fa;padding:12px 20px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;}
-        .right-content{flex:1;padding:20px;overflow-y:auto;background:#fffef7;font-family:'宋体',SimSun;font-size:14px;line-height:1.6;min-height:500px;}
         .section{border:1px solid #ddd;border-radius:10px;margin-bottom:18px;}
         .section-title{background:#f8f9fa;padding:10px 15px;font-weight:600;font-size:14px;color:#1a3a4f;border-left:4px solid #2c7da0;border-bottom:1px solid #ddd;}
         .section-body{padding:14px;}
@@ -74,18 +71,12 @@
             <div id="lesseeList"></div><div class="btn-group"><button class="btn btn-success btn-sm" id="addLesseeBtn">➕ 添加承租人</button><button class="btn btn-danger btn-sm" id="removeLesseeBtn">➖ 删除最后承租人</button></div>
             <div class="row" style="margin-top:8px;"><span class="label">实际驾驶人：</span><input type="text" id="driverName" value="被告一"></div>
             <div class="row"><span class="label">事故原因描述：</span><input type="text" id="accidentReason" value="被告一的过错行为"></div>
-            <div class="row"><span class="label">最后合同名称：</span><input type="text" id="lastContractName" value="网约车直营合作协议合同"></div>
+            <div class="row"><span class="label">最后合同名称：</span><input type="text" id="lastContractName" value="网约车直营合作协议"></div>
         </div></div>
 
         <div class="section"><div class="section-title">⚖️ 责任划分</div><div class="section-body"><div class="row"><span class="label">责任类型：</span><select id="liabilityType"><option value="全部责任">全部责任</option><option value="主要责任">主要责任</option><option value="同等责任">同等责任</option><option value="次要责任">次要责任</option><option value="无责任">无责任</option></select></div><div class="row"><span class="label">责任比例：</span><input type="text" id="liabilityPercentage" style="width:80px;" value="100">%</div></div></div>
 
-        <div class="section"><div class="section-title">✍️ 答辩要点</div><div class="section-body"><textarea id="defensePoints" rows="6" style="width:100%;"></textarea><div class="btn-group"><button class="btn btn-primary" id="generateBtn">📄 生成答辩状</button><button class="btn btn-warning" id="memoryBtn">📚 记忆管理</button></div></div></div>
-    </div>
-
-    <div class="right">
-        <div class="right-header"><span>📄 答辩状预览</span><button class="btn btn-primary btn-sm" id="copyBtn">📋 复制内容</button></div>
-        <div class="right-content" id="previewContent"><div style="color:#999;text-align:center;padding:40px;">点击「生成答辩状」查看预览</div></div>
-        <div class="status-bar"><span id="statusText">✅ 就绪</span><span>⚖️ 智能法律文书助手</span></div>
+        <div class="section"><div class="section-title">✍️ 答辩要点</div><div class="section-body"><textarea id="defensePoints" rows="8" style="width:100%;"></textarea><div class="btn-group"><button class="btn btn-primary" id="generateBtn">📄 生成答辩状（下载DOCX）</button><button class="btn btn-warning" id="memoryBtn">📚 记忆管理</button></div></div></div>
     </div>
 </div>
 
@@ -113,11 +104,6 @@ function showToast(msg){
     t.style.opacity = '1';
     setTimeout(() => t.style.opacity = '0', 2000);
 }
-function setStatus(msg, color){
-    let s = document.getElementById('statusText');
-    s.textContent = msg;
-    s.style.color = color || '#495057';
-}
 
 // 记忆
 function loadMemory(){
@@ -143,7 +129,6 @@ function autoFillFromMemory(){
     if(d && memoryDB[d.name]){
         if(memoryDB[d.name].legal_rep) document.getElementById('legalRep').value = memoryDB[d.name].legal_rep;
         if(memoryDB[d.name].contact) document.getElementById('contact').value = memoryDB[d.name].contact;
-        setStatus('✅ 已自动填充', '#27ae60');
     }
 }
 
@@ -237,7 +222,7 @@ function getPartyString(){
     return r;
 }
 
-// 生成第二点答辩要点（完整版，包含法条）
+// 生成第二点答辩要点
 function getPoint2(){
     if(!document.getElementById('autoGeneratePoint2').checked) return '';
     
@@ -267,7 +252,7 @@ function getPoint2(){
     return txt;
 }
 
-// 生成答辩状
+// 生成DOCX文档（完全按照Python版本的格式）
 async function generateDefense(){
     let d = getDefenderInfo();
     if(!d){ showToast('请勾选答辩人'); return; }
@@ -295,62 +280,98 @@ async function generateDefense(){
     let today = new Date();
     let dateStr = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
     
-    // 预览
-    let previewHtml = `<h3 style="text-align:center;">答辩状</h3>`;
-    previewHtml += `<div><strong>答辩人：</strong>${d.name}</div>`;
-    previewHtml += `<div><strong>通讯地址：</strong>湖北省武汉市经济技术开发区创业路70号</div>`;
-    previewHtml += `<div><strong>负责人：</strong>${legalRep}</div>`;
-    previewHtml += `<div><strong>联系方式：</strong>${contact}</div><br>`;
-    previewHtml += `<p>${intro}</p>`;
-    let paras = pts.split('\n\n');
-    for(let p of paras) if(p.trim()) previewHtml += `<p>${p.replace(/\n/g,'<br>')}</p>`;
-    previewHtml += `<p>综上所述，原告要求被告承担赔偿责任，没有法律和事实依据，请法院予以驳回。</p><br><br>`;
-    previewHtml += `<div style="text-align:right;">答辩人：${d.name}</div>`;
-    previewHtml += `<div style="text-align:right;">${dateStr}</div>`;
-    document.getElementById('previewContent').innerHTML = previewHtml;
-    
-    // 下载DOCX
+    // 准备DOCX内容
     let docx = window.docx;
     if(!docx){ showToast('加载中，请重试'); return; }
     let Document = docx.Document;
     let Paragraph = docx.Paragraph;
     let TextRun = docx.TextRun;
     let AlignmentType = docx.AlignmentType;
+    let convertInchesToTwip = docx.convertInchesToTwip || function(inches){ return inches * 1440; };
     
-    let children = [
-        new Paragraph({alignment: AlignmentType.CENTER, children: [new TextRun({text:'答辩状', bold:true, size:32})]}),
-        new Paragraph({}),
-        new Paragraph({children: [new TextRun({text:'答辩人：'+d.name, size:28})]}),
-        new Paragraph({children: [new TextRun({text:'通讯地址：湖北省武汉市经济技术开发区创业路70号', size:28})]}),
-        new Paragraph({children: [new TextRun({text:'负责人：'+legalRep, size:28})]}),
-        new Paragraph({children: [new TextRun({text:'联系方式：'+contact, size:28})]}),
-        new Paragraph({}),
-        new Paragraph({children: [new TextRun({text:intro, size:28})]})
+    // 构建段落
+    let children = [];
+    
+    // 标题（居中，加粗，16号字）
+    children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({text:'答辩状', bold:true, size:32})]
+    }));
+    children.push(new Paragraph({})); // 空行
+    
+    // 答辩人信息（左对齐，不加粗，14号字，首行无缩进）
+    let infoLines = [
+        `答辩人：${d.name}`,
+        `通讯地址：湖北省武汉市经济技术开发区创业路70号`,
+        `负责人：${legalRep}`,
+        `联系方式：${contact}`
     ];
+    for(let line of infoLines){
+        children.push(new Paragraph({
+            children: [new TextRun({text:line, size:28})]
+        }));
+    }
+    children.push(new Paragraph({})); // 空行
+    
+    // 案件引入
+    children.push(new Paragraph({
+        children: [new TextRun({text:intro, size:28})]
+    }));
+    
+    // 答辩要点（按段落分割，每段首行缩进2字符）
+    let paras = pts.split('\n\n');
     for(let p of paras){
         if(p.trim()){
-            let bold = p.startsWith('一、')||p.startsWith('二、')||p.startsWith('三、');
-            children.push(new Paragraph({children: [new TextRun({text:p.trim(), bold:bold, size:28})]}));
+            let isBold = p.startsWith('一、') || p.startsWith('二、') || p.startsWith('三、');
+            children.push(new Paragraph({
+                children: [new TextRun({text:p.trim(), bold:isBold, size:28})]
+            }));
         }
     }
-    children.push(new Paragraph({children: [new TextRun({text:'综上所述，原告要求被告承担赔偿责任，没有法律和事实依据，请法院予以驳回。', size:28})]}));
-    children.push(new Paragraph({}));
-    children.push(new Paragraph({}));
-    children.push(new Paragraph({alignment: AlignmentType.RIGHT, children: [new TextRun({text:'答辩人：'+d.name, size:28})]}));
-    children.push(new Paragraph({alignment: AlignmentType.RIGHT, children: [new TextRun({text:dateStr, size:28})]}));
     
-    let doc = new Document({sections: [{children: children}]});
+    // 综上所述
+    children.push(new Paragraph({
+        children: [new TextRun({text:'综上所述，原告要求被告承担赔偿责任，没有法律和事实依据，请法院予以驳回。', size:28})]
+    }));
+    
+    children.push(new Paragraph({}));
+    children.push(new Paragraph({}));
+    
+    // 落款（右对齐）
+    children.push(new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [new TextRun({text:`答辩人：${d.name}`, size:28})]
+    }));
+    children.push(new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [new TextRun({text:dateStr, size:28})]
+    }));
+    
+    // 创建文档（设置页边距：上1英寸，下1英寸，左1.2英寸，右1.2英寸）
+    let doc = new Document({
+        sections: [{
+            properties: {
+                page: {
+                    margin: {
+                        top: convertInchesToTwip(1),
+                        bottom: convertInchesToTwip(1),
+                        left: convertInchesToTwip(1.2),
+                        right: convertInchesToTwip(1.2)
+                    }
+                }
+            },
+            children: children
+        }]
+    });
+    
+    // 生成并下载
     let blob = await docx.Packer.toBlob(doc);
-    saveAs(blob, `答辩状${plaintiffs[0]}.docx`);
+    let plaintiffName = plaintiffs[0] || '未知';
+    let filename = `答辩状${plaintiffName}.docx`;
+    saveAs(blob, filename);
+    
     updateMemory(d.name, legalRep, contact);
-    setStatus('✅ 生成成功', '#27ae60');
-    showToast('DOCX已下载');
-}
-
-function copyContent(){
-    let text = document.getElementById('previewContent').innerText;
-    navigator.clipboard.writeText(text);
-    showToast('已复制');
+    showToast(`✅ 已生成：${filename}`);
 }
 
 function showMemoryPanel(){
@@ -401,7 +422,6 @@ function init(){
     document.getElementById('removeLesseeBtn').onclick = () => { removeLessee(); renderLessees(); };
     document.getElementById('generateBtn').onclick = generateDefense;
     document.getElementById('memoryBtn').onclick = showMemoryPanel;
-    document.getElementById('copyBtn').onclick = copyContent;
     document.getElementById('clearMemoryBtn').onclick = clearAllMemory;
     document.getElementById('closeModalBtn').onclick = closeMemoryPanel;
     document.getElementById('closeModalBtn2').onclick = closeMemoryPanel;
@@ -413,10 +433,12 @@ function init(){
     document.getElementById('defensePoints').value = dp;
     toggleDelivery();
     toggleRental();
-    setStatus('✅ 就绪', '#27ae60');
+    setStatus('✅ 就绪');
 }
 
+function setStatus(msg){ let s = document.getElementById('statusText'); if(s) s.textContent = msg; }
 init();
 </script>
+<div class="status-bar" style="margin-top:20px;"><span id="statusText">✅ 就绪</span><span>⚖️ 点击按钮下载DOCX文档</span></div>
 </body>
 </html>
